@@ -6,10 +6,10 @@ import matplotlib.pyplot as plt
 PAIRS           = ['BtcNis', 'EthNis', 'BchabcNis', 'LtcNis', 'EtcNis', 'BtgNis', 'BchsvNis', 'GrinNis']
 PAIRS_FOR_TRADE = [True,     True,     False,       False,    False,    False,    False,      False]
 
-NORMAL               = 0
-BUY_ONLY             = 1
-CANCEL_ALL           = 2
-BUY_SELL_AT_DISCOUNT = 3
+NORMAL                        = 0
+BUY_ONLY                      = 1
+CANCEL_ALL                    = 2
+BUY_SELL_PROFIT_WITH_PATIENCE = 3
 
 # Normal Mode:
 # EXISTING_INDICATOR_PERCENT = 3.0
@@ -28,26 +28,26 @@ BUY_SELL_AT_DISCOUNT = 3
 
 # BUY-only mode:
 # MODE = BUY_ONLY
-EXISTING_INDICATOR_PERCENT = 3.0
-COMMISSION_PERCENT = 1.0
-COMMISSION_FACTOR = 10.0
-COMMISSION_PERCENT_THRESHOLD = round(float(COMMISSION_PERCENT*COMMISSION_FACTOR), 4)
-BUY_ABOVE_COMMISSION = round(float(1)+float(COMMISSION_PERCENT)/100, 4)
-SELL_BELOW_COMMISSION = round(float(1)-float(COMMISSION_PERCENT)/100, 4)
-ORDER_PERCENTAGE = 2.5  # percentage of balance to spend on recommended order
-MINIMUM_ORDER_NIS = 250.0
+EXISTING_INDICATOR_PERCENT                 = 3.0
+COMMISSION_PERCENT                         = 1.0
+COMMISSION_FACTOR                          = 10.0
+COMMISSION_PERCENT_THRESHOLD               = round(float(COMMISSION_PERCENT*COMMISSION_FACTOR), 4)
+BUY_ABOVE_COMMISSION                       = round(float(1)+float(COMMISSION_PERCENT)/100, 4)
+SELL_BELOW_COMMISSION                      = round(float(1)-float(COMMISSION_PERCENT)/100, 4)
+ORDER_PERCENTAGE                           = 10.0  # percentage of balance to spend on recommended order
+MINIMUM_ORDER_NIS                          = 250.0
 NUM_ITERATIONS_AFTER_WHICH_TO_CHECK_SANITY = 6  # After 6 iterations, if there is no change in number of requried orders, then the quota of open orders was likely to have been reached
-SPREAD_ADVANCE_FACTOR = 0.0 # COMMISSION_FACTOR / (2*NUM_ITERATIONS_AFTER_WHICH_TO_CHECK_SANITY)
-RUN_ONCE = True
-CANCEL_ALL_ORDERS = False
+SPREAD_ADVANCE_FACTOR                      = 0.0 # COMMISSION_FACTOR / (2*NUM_ITERATIONS_AFTER_WHICH_TO_CHECK_SANITY)
+RUN_ONCE                                   = True
+CANCEL_ALL_ORDERS                          = True
 
-# Place Buys at 10% OFF and Sells and 10% over:
-MODE = BUY_SELL_AT_DISCOUNT
-GRAPH_ONLY = True
-GRAPH_PERIOD_SEC = 600
-INFORMATIVE_ONLY = True
-ORDER_PERCENTAGE = 10.0
-DISCOUNT_BUY_PERCENTAGE = 10.0
+MODE                    = BUY_SELL_PROFIT_WITH_PATIENCE
+GRAPH_ONLY              = False
+GRAPH_PERIOD_SEC        = 600
+if GRAPH_ONLY is False:
+    GRAPH_PERIOD_SEC = 3
+INFORMATIVE_ONLY        = False
+DISCOUNT_BUY_PERCENTAGE = 20.0
 
 # Cancell All orders:
 # MODE = CANCEL_ALL
@@ -87,15 +87,16 @@ def bit2c_classic_margins(endless_mode):
             spread = round(100*(float(lowest_ask)-float(highest_bid))/float(lowest_ask),4)
             adapted_pair = pair.replace('Nis', '/Nis').upper().replace('BCHABC', 'BCH').replace('BCHSV', 'BSV')
 
-            if MODE == BUY_SELL_AT_DISCOUNT:
+            if MODE == BUY_SELL_PROFIT_WITH_PATIENCE:
                 spread_orders[adapted_pair] = {
                         'buy' : {
-                                'at': highest_bid*(1-DISCOUNT_BUY_PERCENTAGE/100)
+                                'at': round(highest_bid*(1-DISCOUNT_BUY_PERCENTAGE/100), 2)
                         },
                         'sell': {
-                                'at': lowest_ask*(1+DISCOUNT_BUY_PERCENTAGE/100)
+                                'at': round(lowest_ask*(1+DISCOUNT_BUY_PERCENTAGE/100), 2)
                         }
                 }
+                print('[bit2c_classic_margins] spread_orders[{}] = {}. bid/ask = {}/{}. Spread = {}%'.format(adapted_pair, spread_orders[adapted_pair], highest_bid, lowest_ask, DISCOUNT_BUY_PERCENTAGE))
             else:
                 if spread > COMMISSION_PERCENT_THRESHOLD:
                     # print("{:10}: [bid, ask] = [{:10}, {:10}], spread[%]={:10}".format(pair, highest_bid, lowest_ask, spread))
@@ -114,6 +115,7 @@ def bit2c_classic_margins(endless_mode):
                     }
 
         if not endless_mode:
+            print("\n")
             return spread_orders
         time.sleep(1)
 
@@ -134,51 +136,61 @@ def connect_to_bit2c(plot, api, balances):
             'timeout'        : 30000,
             'enableRateLimit': True,
     })
-    print('[connect_to_bit2c] Fetching Balances...')
+    print('[connect_to_bit2c] Fetching Balances...\n=======================================')
     balances['data'] = exchange.fetch_balance()
     print('[connect_to_bit2c] Balances: {}'.format(balances))
     labels = []
     sizes = []
     explodes = []
+    colors = []
     total_nis = 0
+    colors_list = ['brown', 'blue', 'lightcoral', 'lightskyblue', 'darkgreen', 'red', 'orange']
+    color_index = 0
     for item, value in balances['data']['info'].items():
         if 'ESTIMATED_BALANCE_' in item:
             item_name = item.replace('ESTIMATED_BALANCE_', '').replace('_IN_NIS', '') + ' = {} NIS'.format(int(round(value,0)))
-            print('    {} = {}'.format(item_name, value))
+            print('    {}'.format(item_name))
             labels.append(item_name)
             sizes.append(value)
+            colors.append(colors_list[color_index])
             explodes.append(0)
             total_nis += value;
+            color_index += 1
     if plot:
+        plt.style.use('dark_background')
         plt.clf()
-        plt.pie(sizes, labels=labels, explode=explodes, autopct='%1.1f%%', shadow=True, startangle=180)
+        plt.pie(sizes, labels=labels, colors=colors, explode=explodes, autopct='%1.1f%%', shadow=True, startangle=180)
         plt.axis('equal')
         plt.show(block=False)
-        plt.title('Total value: {} NIS'.format(int(round(total_nis,0))))
+        plt.title('Total value: {} NIS (Refresh every {} sec)'.format(int(round(total_nis,0)), GRAPH_PERIOD_SEC))
         plt.pause(GRAPH_PERIOD_SEC)
         plt.close
 
+    print("\n")
     return exchange
 
 
 def cancel_my_open_orders(exchange, markets):
     my_open_orders = {}
     for market in markets:
+        adapted_market = market.replace('BTC', 'Btc').replace('ETH', 'Eth').replace('BCH', 'Bchabc').replace('LTC', 'Ltc').replace('ETC', 'Etc').replace('BTG', 'Btg').replace('BSV', 'Bchsv').replace('GRIN', 'Grin').replace('/NIS', 'Nis')
+        if PAIRS_FOR_TRADE[PAIRS.index(adapted_market)] is False:
+            continue
+
+        print("[cancel_my_open_orders] Fetching {} Orders".format(market))
         open_orders = exchange.fetch_open_orders(market)
-        print('[cancel_my_open_orders] {} orders are {}'.format(market, open_orders))
         if len(open_orders):
+            print('[cancel_my_open_orders] {} orders are {}'.format(market, open_orders))
             for order in open_orders:
                 print('    Cancelling [{:4} {:6} {:9} at {:5}]'.format(order['side'], order['amount'], order['symbol'], order['price']))
                 exchange.cancel_order(order['id'])
+    print("\n")
 
 
 def scan_my_open_orders(exchange, markets, return_only_edges=True):
     my_open_orders = {}
     for market in markets:
-        print('Market: {}'.format(market))
         adapted_market = market.replace('BTC', 'Btc').replace('ETH', 'Eth').replace('BCH', 'Bchabc').replace('LTC', 'Ltc').replace('ETC', 'Etc').replace('BTG', 'Btg').replace('BSV', 'Bchsv').replace('GRIN', 'Grin').replace('/NIS', 'Nis')
-        print('adapted_market: {}'.format(adapted_market))
-        print('PAIRS.index(adapted_market): {}'.format(PAIRS.index(adapted_market)))
 
         if PAIRS_FOR_TRADE[PAIRS.index(adapted_market)] is False:
             continue
@@ -272,17 +284,17 @@ def get_required_orders(spread_orders, my_open_orders, allow_multiple_spread_ord
                     'normalization_factor': 1.0
             }
             required_orders.append(order_buy)
+    print("\n")
     return required_orders
 
 
 def create_priced_orders(required_orders, balances):
     priced_orders = []
-    print('\n[create_priced_orders] balances = {}'.format(balances))
     for required_order in required_orders:
         currency = required_order['pair'].replace('/NIS', '')
         available_str = 'AVAILABLE_' + currency.replace('BCH','BCHABC').replace('BSV', 'BCHSV')
-        print('[create_priced_orders] currency = {}, available_str = {}, balance = {}'.format(currency, available_str, round(balances['data']['info'][available_str],2)))
-        print('[create_priced_orders] required_order: {}'.format(required_order))
+        print('[create_priced_orders] {} = {}. required_order: {}. ORDER_PERCENTAGE = {}%'.format(available_str, balances['data']['info'][available_str], required_order, ORDER_PERCENTAGE))
+
         if required_order['side'] == 'sell' and balances['data']['info'][available_str] > 0:
             amount = round(balances['data']['info'][available_str]*ORDER_PERCENTAGE/100,2)*required_order['normalization_factor']
             if amount*required_order['price'] < MINIMUM_ORDER_NIS:
@@ -291,7 +303,8 @@ def create_priced_orders(required_orders, balances):
                 'pair': required_order['pair'],
                 'side': 'sell',
                 'amount': amount,
-                'price': required_order['price']
+                'price': required_order['price'],
+                'volume': amount * required_order['price']
             }
             print('[create_priced_orders] Adding priced_order: {}'.format(priced_order))
             priced_orders.append(priced_order)
@@ -303,10 +316,12 @@ def create_priced_orders(required_orders, balances):
                 'pair': required_order['pair'],
                 'side': 'buy',
                 'amount': amount,
-                'price': required_order['price']
+                'price': required_order['price'],
+                'volume': amount*required_order['price']
             }
             print('[create_priced_orders] Adding priced_order: {}'.format(priced_order))
             priced_orders.append(priced_order)
+    print("\n")
     return priced_orders
 
 
@@ -323,18 +338,21 @@ def execute_priced_orders(exchange, priced_orders):
 
 
 def main():
+    print("\n")
     iteration = 0
     num_of_my_previous_required_orders = 0
     while True:
         iteration += 1
 
         balances = {}
-        exchange = connect_to_bit2c(plot=GRAPH_ONLY, api=API_1, balances=balances)  # False/True for debug Plot
+        exchange = connect_to_bit2c(plot=(GRAPH_ONLY or RUN_ONCE), api=API_1, balances=balances)  # False/True for debug Plot
+
         if GRAPH_ONLY:
             if RUN_ONCE:
                 return
             else:
                 continue
+
         markets = exchange.load_markets()
 
         if iteration == 1 and CANCEL_ALL_ORDERS:
