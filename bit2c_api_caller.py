@@ -43,7 +43,9 @@ CANCEL_ALL_ORDERS = False
 
 # Place Buys at 10% OFF and Sells and 10% over:
 MODE = BUY_SELL_AT_DISCOUNT
-INFORMATIVE_ONLY = False
+GRAPH_ONLY = True
+GRAPH_PERIOD_SEC = 600
+INFORMATIVE_ONLY = True
 ORDER_PERCENTAGE = 10.0
 DISCOUNT_BUY_PERCENTAGE = 10.0
 
@@ -132,21 +134,29 @@ def connect_to_bit2c(plot, api, balances):
             'timeout'        : 30000,
             'enableRateLimit': True,
     })
-    print('[connect_to_bit2c] Fetching Balances:')
+    print('[connect_to_bit2c] Fetching Balances...')
     balances['data'] = exchange.fetch_balance()
-
+    print('[connect_to_bit2c] Balances: {}'.format(balances))
     labels = []
     sizes = []
+    explodes = []
+    total_nis = 0
     for item, value in balances['data']['info'].items():
         if 'ESTIMATED_BALANCE_' in item:
-            item_name = item.replace('ESTIMATED_BALANCE_', '').replace('_IN_NIS', '')
+            item_name = item.replace('ESTIMATED_BALANCE_', '').replace('_IN_NIS', '') + ' = {} NIS'.format(int(round(value,0)))
             print('    {} = {}'.format(item_name, value))
             labels.append(item_name)
             sizes.append(value)
+            explodes.append(0)
+            total_nis += value;
     if plot:
-        plt.pie(sizes, labels=labels, autopct='%1.1f%%', shadow=True, startangle=140)
+        plt.clf()
+        plt.pie(sizes, labels=labels, explode=explodes, autopct='%1.1f%%', shadow=True, startangle=180)
         plt.axis('equal')
-        plt.show()
+        plt.show(block=False)
+        plt.title('Total value: {} NIS'.format(int(round(total_nis,0))))
+        plt.pause(GRAPH_PERIOD_SEC)
+        plt.close
 
     return exchange
 
@@ -319,7 +329,12 @@ def main():
         iteration += 1
 
         balances = {}
-        exchange = connect_to_bit2c(plot=RUN_ONCE, api=API_1, balances=balances)  # False/True for debug Plot
+        exchange = connect_to_bit2c(plot=GRAPH_ONLY, api=API_1, balances=balances)  # False/True for debug Plot
+        if GRAPH_ONLY:
+            if RUN_ONCE:
+                return
+            else:
+                continue
         markets = exchange.load_markets()
 
         if iteration == 1 and CANCEL_ALL_ORDERS:
