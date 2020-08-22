@@ -26,8 +26,6 @@ BUY_SELL_PROFIT_WITH_PATIENCE = 3
 # CANCEL_ALL_ORDERS = False
 
 
-# BUY-only mode:
-# MODE = BUY_ONLY
 EXISTING_INDICATOR_PERCENT                 = 3.0
 COMMISSION_PERCENT                         = 1.0
 COMMISSION_FACTOR                          = 10.0
@@ -43,16 +41,17 @@ CANCEL_ALL_ORDERS                          = True
 
 MODE                    = BUY_SELL_PROFIT_WITH_PATIENCE
 GRAPH_ONLY              = False
-GRAPH_PERIOD_SEC        = 600
-if GRAPH_ONLY is False:
-    GRAPH_PERIOD_SEC = 3
+GRAPH_PERIOD_SEC        = 60
 INFORMATIVE_ONLY        = False
 DISCOUNT_BUY_PERCENTAGE = 20.0
 
-# Cancell All orders:
-# MODE = CANCEL_ALL
-# CANCEL_ALL_ORDERS = True
-# RUN_ONCE = True
+# Routine Mode (Comment if required):
+GRAPH_ONLY       = True
+INFORMATIVE_ONLY = True
+RUN_ONCE         = False
+
+if GRAPH_ONLY is False:
+    GRAPH_PERIOD_SEC = 3
 
 
 def bit2c_classic_margins(endless_mode):
@@ -162,8 +161,9 @@ def connect_to_bit2c(plot, api, balances):
         plt.pie(sizes, labels=labels, colors=colors, explode=explodes, autopct='%1.1f%%', shadow=True, startangle=180)
         plt.axis('equal')
         plt.show(block=False)
-        plt.title('Total value: {} NIS (Refresh every {} sec)'.format(int(round(total_nis,0)), GRAPH_PERIOD_SEC))
-        plt.pause(GRAPH_PERIOD_SEC)
+        for refresh_seconds_left in range(GRAPH_PERIOD_SEC, 1, -1):
+            plt.title('Total value: {} NIS (Refresh in {} sec)'.format(int(round(total_nis,0)), refresh_seconds_left))
+            plt.pause(1)
         plt.close
 
     print("\n")
