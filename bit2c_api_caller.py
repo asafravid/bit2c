@@ -3,11 +3,12 @@ import time
 import ccxt
 import matplotlib.pyplot as plt
 
-PAIRS = ['BtcNis', 'EthNis', 'BchabcNis', 'LtcNis', 'EtcNis', 'BtgNis', 'BchsvNis', 'GrinNis']
+PAIRS           = ['BtcNis', 'EthNis', 'BchabcNis', 'LtcNis', 'EtcNis', 'BtgNis', 'BchsvNis', 'GrinNis']
+PAIRS_FOR_TRADE = [True,     True,     False,       False,    False,    False,    False,      False]
 
-NORMAL          = 0
-BUY_ONLY        = 1
-CANCEL_ALL      = 2
+NORMAL               = 0
+BUY_ONLY             = 1
+CANCEL_ALL           = 2
 BUY_SELL_AT_DISCOUNT = 3
 
 # Normal Mode:
@@ -34,18 +35,15 @@ COMMISSION_PERCENT_THRESHOLD = round(float(COMMISSION_PERCENT*COMMISSION_FACTOR)
 BUY_ABOVE_COMMISSION = round(float(1)+float(COMMISSION_PERCENT)/100, 4)
 SELL_BELOW_COMMISSION = round(float(1)-float(COMMISSION_PERCENT)/100, 4)
 ORDER_PERCENTAGE = 2.5  # percentage of balance to spend on recommended order
-MINIMUM_ORDER_NIS = 45.0
+MINIMUM_ORDER_NIS = 250.0
 NUM_ITERATIONS_AFTER_WHICH_TO_CHECK_SANITY = 6  # After 6 iterations, if there is no change in number of requried orders, then the quota of open orders was likely to have been reached
 SPREAD_ADVANCE_FACTOR = 0.0 # COMMISSION_FACTOR / (2*NUM_ITERATIONS_AFTER_WHICH_TO_CHECK_SANITY)
-RUN_ONCE = False
+RUN_ONCE = True
 CANCEL_ALL_ORDERS = False
 
 # Place Buys at 10% OFF and Sells and 10% over:
 MODE = BUY_SELL_AT_DISCOUNT
-RUN_ONCE = True
-INFORMATIVE_ONLY = True
-CANCEL_ALL_ORDERS = True
-MINIMUM_ORDER_NIS = 50.0
+INFORMATIVE_ONLY = False
 ORDER_PERCENTAGE = 10.0
 DISCOUNT_BUY_PERCENTAGE = 10.0
 
@@ -76,9 +74,12 @@ def bit2c_classic_margins(endless_mode):
                 print("[bit2c_classic_margins] Exception: Failed to Connect to url {}".format(url))
                 return
 
-            print(data)
-            print(data["bids"])
-            print(data["asks"])
+            if len(data["bids"]) is 0 or len(data["asks"]) is 0:
+                continue
+
+            if PAIRS_FOR_TRADE[PAIRS.index(pair)] is False:
+                continue
+
             highest_bid = data["bids"][0][0]
             lowest_ask  = data["asks"][0][0]
             spread = round(100*(float(lowest_ask)-float(highest_bid))/float(lowest_ask),4)
@@ -164,6 +165,13 @@ def cancel_my_open_orders(exchange, markets):
 def scan_my_open_orders(exchange, markets, return_only_edges=True):
     my_open_orders = {}
     for market in markets:
+        print('Market: {}'.format(market))
+        adapted_market = market.replace('BTC', 'Btc').replace('ETH', 'Eth').replace('BCH', 'Bchabc').replace('LTC', 'Ltc').replace('ETC', 'Etc').replace('BTG', 'Btg').replace('BSV', 'Bchsv').replace('GRIN', 'Grin').replace('/NIS', 'Nis')
+        print('adapted_market: {}'.format(adapted_market))
+        print('PAIRS.index(adapted_market): {}'.format(PAIRS.index(adapted_market)))
+
+        if PAIRS_FOR_TRADE[PAIRS.index(adapted_market)] is False:
+            continue
         open_orders = exchange.fetch_open_orders(market)
         print('[scan_my_open_orders] Scanning {} open {} orders'.format(len(open_orders), market))
         if len(open_orders):
@@ -321,7 +329,7 @@ def main():
             print('[main] Sleep a little to let the other traders calm down')
             time.sleep(5)  # Sleep a little to let the other traders calm down
 
-        spread_orders = bit2c_classic_margins(endless_mode=True)
+        spread_orders = bit2c_classic_margins(endless_mode=False)
 
         my_open_orders = scan_my_open_orders(exchange, markets)
         num_of_my_open_orders = 0
