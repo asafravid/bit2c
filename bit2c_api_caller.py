@@ -37,21 +37,19 @@ MINIMUM_ORDER_NIS                          = 250.0
 NUM_ITERATIONS_AFTER_WHICH_TO_CHECK_SANITY = 6  # After 6 iterations, if there is no change in number of requried orders, then the quota of open orders was likely to have been reached
 SPREAD_ADVANCE_FACTOR                      = 0.0 # COMMISSION_FACTOR / (2*NUM_ITERATIONS_AFTER_WHICH_TO_CHECK_SANITY)
 RUN_ONCE                                   = True
-CANCEL_ALL_ORDERS                          = True
+CANCEL_ALL_ORDERS                          = False
 
 MODE                    = BUY_SELL_PROFIT_WITH_PATIENCE
 GRAPH_ONLY              = False
-GRAPH_PERIOD_SEC        = 60
+GRAPH_PERIOD_SEC        = 600
 INFORMATIVE_ONLY        = False
 DISCOUNT_BUY_PERCENTAGE = 20.0
 
 # Routine Mode (Comment if required):
-GRAPH_ONLY       = True
+GRAPH_ONLY       = False
 INFORMATIVE_ONLY = True
 RUN_ONCE         = False
-
-if GRAPH_ONLY is False:
-    GRAPH_PERIOD_SEC = 3
+VISUAL_MODE      = True
 
 
 def bit2c_classic_margins(endless_mode):
@@ -345,7 +343,7 @@ def main():
         iteration += 1
 
         balances = {}
-        exchange = connect_to_bit2c(plot=(GRAPH_ONLY or RUN_ONCE), api=API_1, balances=balances)  # False/True for debug Plot
+        exchange = connect_to_bit2c(plot=(GRAPH_ONLY or RUN_ONCE or VISUAL_MODE), api=API_1, balances=balances)  # False/True for debug Plot
 
         if GRAPH_ONLY:
             if RUN_ONCE:
@@ -374,7 +372,7 @@ def main():
 
         required_orders = get_required_orders(spread_orders=spread_orders, my_open_orders=my_open_orders, allow_multiple_spread_orders=True, factor=(iteration-1)*SPREAD_ADVANCE_FACTOR)
 
-        if iteration > NUM_ITERATIONS_AFTER_WHICH_TO_CHECK_SANITY:
+        if INFORMATIVE_ONLY is False and iteration > NUM_ITERATIONS_AFTER_WHICH_TO_CHECK_SANITY:
             if len(required_orders) == num_of_my_previous_required_orders:
                 print('[main] No change in len(required_orders)={} from last iteration, stopping run'.format(len(required_orders)))  # TODO: ASFAR: Can reset iteration to 0 for instance instead of exiting
                 return
@@ -383,8 +381,11 @@ def main():
 
         priced_orders = create_priced_orders(required_orders, balances)
 
-        if (INFORMATIVE_ONLY):
-            return
+        if INFORMATIVE_ONLY:
+            if RUN_ONCE:
+                return
+            else:
+                continue
 
         execute_priced_orders(exchange, priced_orders)
         print('[main] Completed iteration {}'.format(iteration))
