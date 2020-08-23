@@ -4,7 +4,7 @@ import ccxt
 import matplotlib.pyplot as plt
 
 PAIRS           = ['BtcNis', 'EthNis', 'BchabcNis', 'LtcNis', 'EtcNis', 'BtgNis', 'BchsvNis', 'GrinNis']
-PAIRS_FOR_TRADE = [True,     True,     False,       False,    False,    False,    False,      False]
+PAIRS_FOR_TRADE = [True,     True,     True,       True,    False,    False,    False,      False]
 
 NORMAL                        = 0
 BUY_ONLY                      = 1
@@ -50,6 +50,9 @@ GRAPH_ONLY       = False
 INFORMATIVE_ONLY = True
 RUN_ONCE         = False
 VISUAL_MODE      = True
+
+if GRAPH_ONLY is False:
+    GRAPH_PERIOD_SEC = 30
 
 
 def bit2c_classic_margins(endless_mode):
@@ -134,18 +137,23 @@ def connect_to_bit2c(plot, api, balances):
             'enableRateLimit': True,
     })
     print('[connect_to_bit2c] Fetching Balances...\n=======================================')
+    for refresh_seconds_left in range(GRAPH_PERIOD_SEC, 1, -1):
+        time.sleep(1)
+        print('\rrefresh_seconds_left: ', refresh_seconds_left, end='')
+
     balances['data'] = exchange.fetch_balance()
-    print('[connect_to_bit2c] Balances: {}'.format(balances))
-    labels = []
-    sizes = []
-    explodes = []
-    colors = []
-    total_nis = 0
-    colors_list = ['brown', 'blue', 'lightcoral', 'lightskyblue', 'darkgreen', 'red', 'orange']
+    print('\n[connect_to_bit2c] Balances: {}'.format(balances))
+    labels      = []
+    sizes       = []
+    explodes    = []
+    colors      = []
+    total_nis   = 0
     color_index = 0
+    colors_list = ['brown', 'blue', 'lightcoral', 'lightskyblue', 'darkgreen', 'red', 'orange']
+
     for item, value in balances['data']['info'].items():
         if 'ESTIMATED_BALANCE_' in item:
-            item_name = item.replace('ESTIMATED_BALANCE_', '').replace('_IN_NIS', '') + ' = {} NIS'.format(int(round(value,0)))
+            item_name = item.replace('ESTIMATED_BALANCE_', '').replace('_IN_NIS', '').replace('ABC', '').replace('GRIN', 'GRN') + ' = {:5} NIS'.format(int(round(value,0)))
             print('    {}'.format(item_name))
             labels.append(item_name)
             sizes.append(value)
@@ -233,12 +241,12 @@ def get_required_orders(spread_orders, my_open_orders, allow_multiple_spread_ord
     required_orders = []
 
     for spread_pair, spread_order in spread_orders.items():
-        print('\n\n[get_required_orders] {}: spread_order = {}, factor = {}'.format(spread_pair, spread_order, factor))
+        print('\n\n[get_required_orders] {}: {}, factor = {}'.format(spread_pair, spread_order, factor))
         print('=========================================================================================================')
         # Need to normalize the sell/buy to yield the same NIS value:
         # Consider: Sell at 40, buy at 15. So normalize sell *AMOUNT* by 15/40
         if spread_pair in list(my_open_orders.keys()):
-            print("[get_required_orders] {} exists in list(my open orders.keys())".format(spread_pair))
+            print("[get_required_orders] {} exists in my_open_orders".format(spread_pair))
             added_sell = False
             added_buy  = False
             for my_open_order in my_open_orders[spread_pair]:
@@ -252,7 +260,7 @@ def get_required_orders(spread_orders, my_open_orders, allow_multiple_spread_ord
                                 'price': round(spread_order['sell']['at']*(1.0 - float(factor)/100),4),
                                 'normalization_factor': spread_order['buy']['at']/spread_order['sell']['at']
                         }
-                        print('[get_required_orders] Adding Recommended order: {}'.format(order))
+                        print('[get_required_orders] Adding   sell order: price={:8}'.format(order['price']))
                         required_orders.append(order)
                 if not added_buy and my_open_order['side'] == 'buy' and (abs(my_open_order['price']-spread_order['buy']['at'])/my_open_order['price'] > EXISTING_INDICATOR_PERCENT/100 or allow_multiple_spread_orders):
                     added_buy = True
@@ -262,11 +270,11 @@ def get_required_orders(spread_orders, my_open_orders, allow_multiple_spread_ord
                             'price': round(spread_order['buy']['at']*(1.0 + float(factor)/100),4),
                             'normalization_factor': 1.0
                     }
-                    print('[get_required_orders] Adding Recommended order: {}'.format(order))
+                    print('[get_required_orders] Adding   buy  order: price={:8}'.format(order['price']))
                     required_orders.append(order)
         else:
-            print("[get_required_orders] spread pair {} does not exist in my open orders".format(spread_pair))
-            print('[get_required_orders] Recommended order: {} {}'.format(spread_pair, spread_order))
+            print("[get_required_orders] {} does not exist in my_open_orders".format(spread_pair))
+            print('[get_required_orders] Recommended order: {}'.format(spread_order))
             if MODE != BUY_ONLY:
                 order_sell = {
                         'pair' : spread_pair,
@@ -368,7 +376,7 @@ def main():
             print('\n   [main] My {} Open Orders:'.format(market))
             for order in my_open_orders[market]:
                 num_of_my_open_orders += 1
-                print('      [main] {:5} {:11} at {:7} (Total of {})'.format(order['side'], order['amount'], order['price'], num_of_my_open_orders))
+                print('      [main] {:5} {:11} at {:7} (Volume is {:5}, Total orders of {})'.format(order['side'], order['amount'], order['price'], round(order['amount']*order['price'],2), num_of_my_open_orders))
 
         required_orders = get_required_orders(spread_orders=spread_orders, my_open_orders=my_open_orders, allow_multiple_spread_orders=True, factor=(iteration-1)*SPREAD_ADVANCE_FACTOR)
 
