@@ -52,7 +52,7 @@ RUN_ONCE         = False
 VISUAL_MODE      = True
 
 if GRAPH_ONLY is False:
-    GRAPH_PERIOD_SEC = 60
+    GRAPH_PERIOD_SEC = 10
 
 
 
@@ -90,14 +90,10 @@ def bit2c_classic_margins(endless_mode):
 
             if MODE == BUY_SELL_PROFIT_WITH_PATIENCE:
                 spread_orders[adapted_pair] = {
-                        'buy' : {
-                                'at': round(highest_bid*(1-DISCOUNT_BUY_PERCENTAGE/100), 2)
-                        },
-                        'sell': {
-                                'at': round(lowest_ask*(1+DISCOUNT_BUY_PERCENTAGE/100), 2)
-                        }
+                        'buy' : { 'at': round(highest_bid*(1-DISCOUNT_BUY_PERCENTAGE/100), 2) },
+                        'sell': { 'at': round(lowest_ask *(1+DISCOUNT_BUY_PERCENTAGE/100), 2) }
                 }
-                print('[bit2c_classic_margins] spread_orders[{}] = {}. bid/ask = {}/{}. Spread = {}%'.format(adapted_pair, spread_orders[adapted_pair], highest_bid, lowest_ask, DISCOUNT_BUY_PERCENTAGE))
+                print('[bit2c_classic_margins] spread_orders[{}] = buy at {:8}, sell at {:8}. bid/ask = {:8} / {:8}. Spread = {}%'.format(adapted_pair, spread_orders[adapted_pair]['buy']['at'], spread_orders[adapted_pair]['sell']['at'], highest_bid, lowest_ask, DISCOUNT_BUY_PERCENTAGE))
             else:
                 if spread > COMMISSION_PERCENT_THRESHOLD:
                     # print("{:10}: [bid, ask] = [{:10}, {:10}], spread[%]={:10}".format(pair, highest_bid, lowest_ask, spread))
@@ -107,12 +103,8 @@ def bit2c_classic_margins(endless_mode):
                     print("     BUY  {:10} at {:10}".format(pair.replace('Nis', '').upper(), buy_at))
                     print("    ===============================")
                     spread_orders[adapted_pair] = {
-                            'buy': {
-                                    'at': buy_at
-                            },
-                            'sell': {
-                                    'at': sell_at
-                            }
+                            'buy' : { 'at': buy_at  },
+                            'sell': { 'at': sell_at }
                     }
 
         if not endless_mode:
@@ -254,7 +246,7 @@ def get_required_orders(spread_orders, my_open_orders, allow_multiple_spread_ord
             added_sell = False
             added_buy  = False
             for my_open_order in my_open_orders[spread_pair]:
-                print("[get_required_orders] Checking my_open_order: {}".format(my_open_order))
+                print("[get_required_orders] Checking my_open_order: {:4} {:10} at {:8}".format(my_open_order['side'], my_open_order['amount'], my_open_order['price']), end='')
                 if not added_sell and my_open_order['side'] == 'sell' and (abs(my_open_order['price']-spread_order['sell']['at'])/my_open_order['price'] > EXISTING_INDICATOR_PERCENT/100 or allow_multiple_spread_orders):
                     added_sell = True
                     if MODE != BUY_ONLY:
@@ -264,8 +256,10 @@ def get_required_orders(spread_orders, my_open_orders, allow_multiple_spread_ord
                                 'price': round(spread_order['sell']['at']*(1.0 - float(factor)/100),4),
                                 'normalization_factor': spread_order['buy']['at']/spread_order['sell']['at']
                         }
-                        print('[get_required_orders] Adding   sell order: price={:8}'.format(order['price']))
+                        print(' Adding   sell order: price={:8}'.format(order['price']))
                         required_orders.append(order)
+                if not added_sell: print('\n')
+
                 if not added_buy and my_open_order['side'] == 'buy' and (abs(my_open_order['price']-spread_order['buy']['at'])/my_open_order['price'] > EXISTING_INDICATOR_PERCENT/100 or allow_multiple_spread_orders):
                     added_buy = True
                     order = {
@@ -274,8 +268,9 @@ def get_required_orders(spread_orders, my_open_orders, allow_multiple_spread_ord
                             'price': round(spread_order['buy']['at']*(1.0 + float(factor)/100),4),
                             'normalization_factor': 1.0
                     }
-                    print('[get_required_orders] Adding   buy  order: price={:8}'.format(order['price']))
+                    print(' Adding   buy  order: price={:8}'.format(order['price']))
                     required_orders.append(order)
+                if not added_buy and not added_sell: print('\n')
         else:
             print("[get_required_orders] {} does not exist in my_open_orders".format(spread_pair))
             print('[get_required_orders] Recommended order: {}'.format(spread_order))
