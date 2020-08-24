@@ -52,7 +52,8 @@ RUN_ONCE         = False
 VISUAL_MODE      = True
 
 if GRAPH_ONLY is False:
-    GRAPH_PERIOD_SEC = 30
+    GRAPH_PERIOD_SEC = 60
+
 
 
 def bit2c_classic_margins(endless_mode):
@@ -126,7 +127,7 @@ API_1 = {
 }
 
 
-def connect_to_bit2c(plot, api, balances):
+def connect_to_bit2c(api):
     # from variable id
     exchange_id = 'bit2c'
     exchange_class = getattr(ccxt, exchange_id)
@@ -136,13 +137,17 @@ def connect_to_bit2c(plot, api, balances):
             'timeout'        : 30000,
             'enableRateLimit': True,
     })
-    print('[connect_to_bit2c] Fetching Balances...\n=======================================')
+    return exchange
+
+
+def get_balances(exchange, plot, balances):
+    print('[get_balances] Fetching Balances...\n=======================================')
     for refresh_seconds_left in range(GRAPH_PERIOD_SEC, 1, -1):
         time.sleep(1)
         print('\rrefresh_seconds_left: ', refresh_seconds_left, end='')
 
     balances['data'] = exchange.fetch_balance()
-    print('\n[connect_to_bit2c] Balances: {}'.format(balances))
+    print('\n[get_balances] Balances: {}'.format(balances))
     labels      = []
     sizes       = []
     explodes    = []
@@ -170,10 +175,9 @@ def connect_to_bit2c(plot, api, balances):
         for refresh_seconds_left in range(GRAPH_PERIOD_SEC, 1, -1):
             plt.title('Total value: {} NIS (Refresh in {} sec)'.format(int(round(total_nis,0)), refresh_seconds_left))
             plt.pause(1)
-        plt.close
+        # plt.close
 
     print("\n")
-    return exchange
 
 
 def cancel_my_open_orders(exchange, markets):
@@ -345,13 +349,16 @@ def execute_priced_orders(exchange, priced_orders):
 
 def main():
     print("\n")
+
+    exchange = connect_to_bit2c(api=API_1)  # False/True for debug Plot
+
     iteration = 0
     num_of_my_previous_required_orders = 0
     while True:
         iteration += 1
 
         balances = {}
-        exchange = connect_to_bit2c(plot=(GRAPH_ONLY or RUN_ONCE or VISUAL_MODE), api=API_1, balances=balances)  # False/True for debug Plot
+        get_balances(plot=(GRAPH_ONLY or RUN_ONCE or VISUAL_MODE), exchange=exchange, balances=balances)  # False/True for debug Plot
 
         if GRAPH_ONLY:
             if RUN_ONCE:
