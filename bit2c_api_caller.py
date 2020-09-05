@@ -52,7 +52,7 @@ RUN_ONCE         = False
 VISUAL_MODE      = True
 
 if GRAPH_ONLY is False:
-    GRAPH_PERIOD_SEC = 10
+    GRAPH_PERIOD_SEC = 30
 
 
 
@@ -114,8 +114,13 @@ def bit2c_classic_margins(endless_mode):
 
 
 API_1 = {
-        'key': 'key-here',
-        'secret': 'SECRET-HERE'
+        'key': '7ad39215-6b59-4dbd-8fb1-2c9a40e2a0b7',
+        'secret': '5F0FAAA54BA8DCF48A1D5A35B8FFFB9D89656D965D77C1691C15695D90F30792'
+}
+
+API_2 = {
+        'key': 'bf8db5dc-f7ca-459c-9e8b-6ae6dd4c10fb',
+        'secret': '133551AC7F13074317033EF560D1AB476DF95EE6CE090C8C537F8349E5D27599'
 }
 
 
@@ -148,9 +153,17 @@ def get_balances(exchange, plot, balances):
     color_index = 0
     colors_list = ['brown', 'blue', 'lightcoral', 'lightskyblue', 'darkgreen', 'red', 'orange']
 
+    NUM_ELEMENTS_IN_COIN = 4; # AVAILABLE_<Coin>, <Coin>, LOCKED_<Coin>, ESTIMATED_BALANCE_<Coin>_IN_NIS
+    element_in_coin = 0;
     for item, value in balances['data']['info'].items():
+        if 'BCHSV' in item: continue
+        if 'BTG'   in item: continue
+        if 'ETC'   in item: continue
+        if element_in_coin == 1:
+            total_coin = value
         if 'ESTIMATED_BALANCE_' in item:
             item_name = item.replace('ESTIMATED_BALANCE_', '').replace('_IN_NIS', '').replace('ABC', '').replace('GRIN', 'GRN') + ' = {:5} NIS'.format(int(round(value,0)))
+            item_name += '. Total of {}'.format(total_coin)
             print('    {}'.format(item_name))
             labels.append(item_name)
             sizes.append(value)
@@ -158,6 +171,8 @@ def get_balances(exchange, plot, balances):
             explodes.append(0)
             total_nis += value;
             color_index += 1
+        element_in_coin += 1;
+        if element_in_coin >= NUM_ELEMENTS_IN_COIN: element_in_coin = 0
     if plot:
         plt.style.use('dark_background')
         plt.clf()
