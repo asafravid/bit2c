@@ -114,13 +114,8 @@ def bit2c_classic_margins(endless_mode):
 
 
 API_1 = {
-        'key': '7ad39215-6b59-4dbd-8fb1-2c9a40e2a0b7',
-        'secret': '5F0FAAA54BA8DCF48A1D5A35B8FFFB9D89656D965D77C1691C15695D90F30792'
-}
-
-API_2 = {
-        'key': 'bf8db5dc-f7ca-459c-9e8b-6ae6dd4c10fb',
-        'secret': '133551AC7F13074317033EF560D1AB476DF95EE6CE090C8C537F8349E5D27599'
+        'key': 'key-here',
+        'secret': 'SECRET-HERE'
 }
 
 
