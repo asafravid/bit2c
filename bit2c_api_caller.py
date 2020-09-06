@@ -2,6 +2,7 @@ import requests
 import time
 import ccxt
 import matplotlib.pyplot as plt
+import re
 
 PAIRS           = ['BtcNis', 'EthNis', 'BchabcNis', 'LtcNis', 'EtcNis', 'BtgNis', 'BchsvNis', 'GrinNis']
 PAIRS_FOR_TRADE = [True,     True,     True,       True,    False,    False,    False,      False]
@@ -52,7 +53,7 @@ RUN_ONCE         = False
 VISUAL_MODE      = True
 
 if GRAPH_ONLY is False:
-    GRAPH_PERIOD_SEC = 30
+    GRAPH_PERIOD_SEC = 10
 
 
 
@@ -157,10 +158,10 @@ def get_balances(exchange, plot, balances):
         if element_in_coin == 1:
             total_coin = value
         if 'ESTIMATED_BALANCE_' in item:
-            item_name = item.replace('ESTIMATED_BALANCE_', '').replace('_IN_NIS', '').replace('ABC', '').replace('GRIN', 'GRN') + ' = {:5} NIS'.format(int(round(value,0)))
-            item_name += '. Total of {}'.format(total_coin)
+            item_name = item.replace('ESTIMATED_BALANCE_', '').replace('_IN_NIS', '').replace('ABC', '').replace('GRIN', 'GRN') + ' = {:7} NIS'.format(int(round(value,0)))
+            item_name = '{:7} '.format(round(total_coin,4)) + item_name + ' (@ {:8} NIS)'.format(round(value/total_coin,4))
             print('    {}'.format(item_name))
-            labels.append(item_name)
+            labels.append(re.sub(' +', ' ', item_name)) # Remove extra whitespaces
             sizes.append(value)
             colors.append(colors_list[color_index])
             explodes.append(0)
@@ -177,7 +178,7 @@ def get_balances(exchange, plot, balances):
         for refresh_seconds_left in range(GRAPH_PERIOD_SEC, 1, -1):
             plt.title('Total value: {} NIS (Refresh in {} sec)'.format(int(round(total_nis,0)), refresh_seconds_left))
             plt.pause(1)
-        # plt.close
+        plt.close
 
     print("\n")
 
