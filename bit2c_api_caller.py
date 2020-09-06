@@ -306,37 +306,45 @@ def get_required_orders(spread_orders, my_open_orders, allow_multiple_spread_ord
 
 def create_priced_orders(required_orders, balances):
     priced_orders = []
+    print('[create_priced_orders] ORDER_PERCENTAGE = {}%'.format(ORDER_PERCENTAGE))
+    current_currency = None
     for required_order in required_orders:
         currency = required_order['pair'].replace('/NIS', '')
         available_str = 'AVAILABLE_' + currency.replace('BCH','BCHABC').replace('BSV', 'BCHSV')
-        print('[create_priced_orders] {} = {}. required_order: {}. ORDER_PERCENTAGE = {}%'.format(available_str, balances['data']['info'][available_str], required_order, ORDER_PERCENTAGE))
+        if currency != current_currency:
+            print('[create_priced_orders] {} = {}'.format(available_str, balances['data']['info'][available_str]))
+            current_currency = currency
+
+        print('[create_priced_orders]               required_order: {:4} @ {:8} NIS using normalization_factor of {:4} -> '.format(required_order['side'], required_order['price'], round(required_order['normalization_factor'],2)),end='')
 
         if required_order['side'] == 'sell' and balances['data']['info'][available_str] > 0:
             amount = round(balances['data']['info'][available_str]*ORDER_PERCENTAGE/100,2)*required_order['normalization_factor']
             if amount*required_order['price'] < MINIMUM_ORDER_NIS:
                 amount = round(MINIMUM_ORDER_NIS/required_order['price'],2)
             priced_order = {
-                'pair': required_order['pair'],
-                'side': 'sell',
+                'pair'  : required_order['pair'],
+                'side'  : 'sell',
                 'amount': amount,
-                'price': required_order['price'],
+                'price' : required_order['price'],
                 'volume': amount * required_order['price']
             }
-            print('[create_priced_orders] Adding priced_order: {}'.format(priced_order))
+            print('Added: amount={:10}, volume={:8}'.format(round(priced_order['amount'],8), round(priced_order['volume'],2)))
             priced_orders.append(priced_order)
         elif required_order['side'] == 'buy' and balances['data']['info'][available_str] > 0:
             amount = round(balances['data']['info'][available_str]*ORDER_PERCENTAGE/100,2)*required_order['normalization_factor']
             if amount*required_order['price'] < MINIMUM_ORDER_NIS:
                 amount = round(MINIMUM_ORDER_NIS/required_order['price'],2)
             priced_order = {
-                'pair': required_order['pair'],
-                'side': 'buy',
+                'pair'  : required_order['pair'],
+                'side'  : 'buy',
                 'amount': amount,
-                'price': required_order['price'],
+                'price' : required_order['price'],
                 'volume': amount*required_order['price']
             }
-            print('[create_priced_orders] Adding priced_order: {}'.format(priced_order))
+            print('Added: amount={:10}, volume={:8}'.format(round(priced_order['amount'],8), round(priced_order['volume'],2)))
             priced_orders.append(priced_order)
+        else:
+            print('Not Added\n')
     print("\n")
     return priced_orders
 
