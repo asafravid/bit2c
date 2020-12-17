@@ -160,7 +160,7 @@ def get_balances(exchange, plot, balances):
         if 'BCHSV'  in item: continue
         if 'BTG'    in item: continue
         if 'ETC'    in item: continue
-         if element_in_coin == 1:
+        if element_in_coin == 1:
             total_coin = value
         if 'ESTIMATED_BALANCE_' in item:
             item_name = item.replace('ESTIMATED_BALANCE_', '').replace('_IN_NIS', '').replace('ABC', '').replace('GRIN', 'GRN') + ' = {:7} NIS'.format(int(round(value,0)))
