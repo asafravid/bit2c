@@ -1,5 +1,5 @@
 #########
-# V15.1 #
+# V15.2 #
 #########
 
 import requests
@@ -82,7 +82,7 @@ def bit2c_classic_margins(endless_mode):
                 print("[bit2c_classic_margins] Exception: Failed to Connect to url {}".format(url))
                 return
 
-            if len(data["bids"]) is 0 or len(data["asks"]) is 0:
+            if len(data["bids"]) == 0 or len(data["asks"]) == 0:
                 continue
 
             if PAIRS_FOR_TRADE[PAIRS.index(pair)] is False:
