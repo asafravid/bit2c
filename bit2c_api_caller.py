@@ -1,3 +1,7 @@
+#######
+# V15 #
+#######
+
 import requests
 import time
 import ccxt
@@ -5,7 +9,7 @@ import matplotlib.pyplot as plt
 import re
 
 PAIRS           = ['BtcNis', 'EthNis', 'BchabcNis', 'LtcNis', 'EtcNis', 'BtgNis', 'BchsvNis', 'GrinNis']
-PAIRS_FOR_TRADE = [True,     True,     True,       True,    False,    False,    False,      False]
+PAIRS_FOR_TRADE = [ True,     True,     False,       True,     False,    False,    False,      False   ]
 
 NORMAL                        = 0
 BUY_ONLY                      = 1
@@ -152,10 +156,11 @@ def get_balances(exchange, plot, balances):
     NUM_ELEMENTS_IN_COIN = 4; # AVAILABLE_<Coin>, <Coin>, LOCKED_<Coin>, ESTIMATED_BALANCE_<Coin>_IN_NIS
     element_in_coin = 0;
     for item, value in balances['data']['info'].items():
-        if 'BCHSV' in item: continue
-        if 'BTG'   in item: continue
-        if 'ETC'   in item: continue
-        if element_in_coin == 1:
+        if 'BCHABC' in item: continue
+        if 'BCHSV'  in item: continue
+        if 'BTG'    in item: continue
+        if 'ETC'    in item: continue
+         if element_in_coin == 1:
             total_coin = value
         if 'ESTIMATED_BALANCE_' in item:
             item_name = item.replace('ESTIMATED_BALANCE_', '').replace('_IN_NIS', '').replace('ABC', '').replace('GRIN', 'GRN') + ' = {:7} NIS'.format(int(round(value,0)))
