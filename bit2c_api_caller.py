@@ -1,5 +1,5 @@
 #########
-# V15.2 #
+# V15.5 #
 #########
 
 import requests
@@ -119,8 +119,8 @@ def bit2c_classic_margins(endless_mode):
 
 
 API_1 = {
-        'key': 'key-here',
-        'secret': 'SECRET-HERE'
+        'key': 'd16fac23-3971-45e9-8b38-1c5cc90aded3',
+        'secret': 'B9FB6136363C45DF0A565870E43D3E5896C91B5A406666C1B02C7007D8E0A12C'
 }
 
 
@@ -161,8 +161,10 @@ def get_balances(exchange, plot, balances):
         if 'BTG'    in item: continue
         if 'ETC'    in item: continue
         if element_in_coin == 1:
-            total_coin = value
+            total_coin = float(value)
         if 'ESTIMATED_BALANCE_' in item:
+            # print('[get_balances] type(value) = {}, value = {}'.format(type(value), value))
+            value = float(value)
             item_name = item.replace('ESTIMATED_BALANCE_', '').replace('_IN_NIS', '').replace('ABC', '').replace('GRIN', 'GRN') + ' = {:7} NIS'.format(int(round(value,0)))
             item_name = '{:7} '.format(round(total_coin,4)) + item_name + ' (@ {:8} NIS)'.format(round(value/total_coin,4))
             print('    {}'.format(item_name))
