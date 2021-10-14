@@ -1,6 +1,24 @@
-#########
-# V15.5 #
-#########
+#############################################################################
+#
+# Version 0.1.0 - Author: Asaf Ravid <asaf.rvd@gmail.com>
+#
+#    Copyright (C) 2021 Asaf Ravid
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+#############################################################################
+
 
 import requests
 import time
@@ -10,6 +28,8 @@ import re
 
 PAIRS           = ['BtcNis', 'EthNis', 'BchabcNis', 'LtcNis', 'EtcNis', 'BtgNis', 'BchsvNis', 'GrinNis']
 PAIRS_FOR_TRADE = [ True,     True,     False,       True,     False,    False,    False,      False   ]
+BALANCE_TARGET  = [ 0.4,      0.4,      0,           0.05,     0,        0,        0,          0,      ]
+NAMES           = ['BTC',    'ETH',    'BCHABC',    'LTC',    'ETC',    'BTG',    'BCH',      'GRIN'   ]
 
 NORMAL                        = 0
 BUY_ONLY                      = 1
@@ -46,19 +66,18 @@ CANCEL_ALL_ORDERS                          = False
 
 MODE                    = BUY_SELL_PROFIT_WITH_PATIENCE
 GRAPH_ONLY              = False
-GRAPH_PERIOD_SEC        = 600
+GRAPH_PERIOD_SEC        = 10
 INFORMATIVE_ONLY        = False
 DISCOUNT_BUY_PERCENTAGE = 20.0
 
 # Routine Mode (Comment if required):
-GRAPH_ONLY       = False
+GRAPH_ONLY       = True
 INFORMATIVE_ONLY = True
 RUN_ONCE         = False
 VISUAL_MODE      = True
 
 if GRAPH_ONLY is False:
     GRAPH_PERIOD_SEC = 10
-
 
 
 def bit2c_classic_margins(endless_mode):
@@ -145,16 +164,20 @@ def get_balances(exchange, plot, balances):
 
     balances['data'] = exchange.fetch_balance()
     print('\n[get_balances] Balances: {}'.format(balances))
-    labels      = []
-    sizes       = []
-    explodes    = []
-    colors      = []
-    total_nis   = 0
-    color_index = 0
-    colors_list = ['brown', 'blue', 'lightcoral', 'lightskyblue', 'darkgreen', 'red', 'orange']
+    labels         = []
+    sizes          = []
+    explodes       = []
+    colors         = []
+    nis_values     = []
+    names          = []
+    indices        = []
+    coin_values    = []
+    total_nis      = 0
+    color_index    = 0
+    colors_list    = ['brown', 'blue', 'lightcoral', 'lightskyblue', 'darkgreen', 'red', 'orange']
 
-    NUM_ELEMENTS_IN_COIN = 4; # AVAILABLE_<Coin>, <Coin>, LOCKED_<Coin>, ESTIMATED_BALANCE_<Coin>_IN_NIS
-    element_in_coin = 0;
+    NUM_ELEMENTS_IN_COIN = 4  # AVAILABLE_<Coin>, <Coin>, LOCKED_<Coin>, ESTIMATED_BALANCE_<Coin>_IN_NIS
+    element_in_coin = 0
     for item, value in balances['data']['info'].items():
         if 'BCHABC' in item: continue
         if 'BCHSV'  in item: continue
@@ -165,17 +188,44 @@ def get_balances(exchange, plot, balances):
         if 'ESTIMATED_BALANCE_' in item:
             # print('[get_balances] type(value) = {}, value = {}'.format(type(value), value))
             value = float(value)
-            item_name = item.replace('ESTIMATED_BALANCE_', '').replace('_IN_NIS', '').replace('ABC', '').replace('GRIN', 'GRN') + ' = {:7} NIS'.format(int(round(value,0)))
-            item_name = '{:7} '.format(round(total_coin,4)) + item_name + ' (@ {:8} NIS)'.format(round(value/total_coin,4))
+            coin_name = item.replace('ESTIMATED_BALANCE_', '').replace('_IN_NIS', '').replace('ABC', '').replace('GRIN', 'GRN') + ' = {:7} NIS'.format(int(round(value,0)))
+            item_name = '{:7} '.format(round(total_coin,4)) + coin_name + ' (@ {:8} NIS)'.format(round(value/total_coin,4))
             print('    {}'.format(item_name))
             labels.append(re.sub(' +', ' ', item_name)) # Remove extra whitespaces
             sizes.append(value)
             colors.append(colors_list[color_index])
             explodes.append(0)
-            total_nis += value;
+            total_nis += value
+            currency_name = coin_name.split("=",1)[0].replace(' ','')
+            if currency_name != 'NIS':
+                indices.append(NAMES.index(currency_name))
+                names.append(currency_name)
+                coin_values.append(round(value / total_coin, 4))
+                nis_values.append(value)
             color_index += 1
-        element_in_coin += 1;
+        element_in_coin += 1
         if element_in_coin >= NUM_ELEMENTS_IN_COIN: element_in_coin = 0
+
+    ratios_in_total = [round(x / total_nis,3) for x in nis_values]
+    print('[get_balances] ratios_in_total = {}'.format(ratios_in_total))
+    print('[get_balances] names           = {}'.format(names          ))
+    print('[get_balances] nis_values      = {}'.format(nis_values     ))
+    print('[get_balances] coin_values     = {}'.format(coin_values    ))
+    print('[get_balances] indices         = {}'.format(indices        ))
+
+    nis_deltas  = []
+    coin_deltas = []
+    for index, item in enumerate(ratios_in_total):
+        current_ratio  = item
+        required_ratio = BALANCE_TARGET[indices[index]]
+        delta          = (required_ratio-current_ratio)*total_nis
+        nis_deltas.append(round(delta,4))
+        coin_delta     = delta/coin_values[index]
+        coin_deltas.append(round(coin_delta,5))
+
+    print('[get_balances] nis_deltas      = {}'.format(nis_deltas     ))
+    print('[get_balances] coin_deltas     = {}'.format(coin_deltas    ))
+
     if plot:
         plt.style.use('dark_background')
         plt.clf()
