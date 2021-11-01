@@ -1,6 +1,6 @@
 #############################################################################
 #
-# Version 0.1.0 - Author: Asaf Ravid <asaf.rvd@gmail.com>
+# Version 0.1.1 - Author: Asaf Ravid <asaf.rvd@gmail.com>
 #
 #    Copyright (C) 2021 Asaf Ravid
 #
@@ -207,11 +207,18 @@ def get_balances(exchange, plot, balances):
         if element_in_coin >= NUM_ELEMENTS_IN_COIN: element_in_coin = 0
 
     ratios_in_total = [round(x / total_nis,3) for x in nis_values]
-    print('[get_balances] ratios_in_total = {}'.format(ratios_in_total))
-    print('[get_balances] names           = {}'.format(names          ))
-    print('[get_balances] nis_values      = {}'.format(nis_values     ))
-    print('[get_balances] coin_values     = {}'.format(coin_values    ))
-    print('[get_balances] indices         = {}'.format(indices        ))
+
+    print('\n[get_balances] names           = ', end='')
+    for index,value in enumerate(names          ): print('{:>10} | '.format(value), end='')
+    print('\n----------------------------------------------------------------------------')
+    print('\n[get_balances] ratios_in_total = ', end='')
+    for index,value in enumerate(ratios_in_total): print('{:>10} | '.format(value), end='')
+    print('\n[get_balances] nis_values      = ', end='')
+    for index,value in enumerate(nis_values     ): print('{:>10} | '.format(value), end='')
+    print('\n[get_balances] coin_values     = ', end='')
+    for index,value in enumerate(coin_values    ): print('{:>10} | '.format(value), end='')
+    print('\n[get_balances] indices         = ', end='')
+    for index,value in enumerate(indices        ): print('{:>10} | '.format(value), end='')
 
     nis_deltas  = []
     coin_deltas = []
@@ -223,8 +230,11 @@ def get_balances(exchange, plot, balances):
         coin_delta     = delta/coin_values[index]
         coin_deltas.append(round(coin_delta,5))
 
-    print('[get_balances] nis_deltas      = {}'.format(nis_deltas     ))
-    print('[get_balances] coin_deltas     = {}'.format(coin_deltas    ))
+    print('\n[get_balances] nis_deltas      = ', end='')
+    for index,value in enumerate(nis_deltas     ): print('{:>10} | '.format(value), end='')
+    print('\n[get_balances] coin_deltas     = ', end='')
+    for index,value in enumerate(coin_deltas    ): print('{:>10} | '.format(value), end='')
+    print('\n')
 
     if plot:
         plt.style.use('dark_background')
